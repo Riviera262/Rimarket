@@ -146,6 +146,42 @@ class ProductTest {
         assertEquals(CatalogDomainViolation.INVALID_SKU, exception.getViolation());
     }
 
+    @Test
+    void duplicateNameIsRejectedEvenWhenInactiveAndInputHasPadding() {
+        Product product = product();
+        ProductVariant variant = product.addVariant("FIRST", "Black", BigDecimal.ONE);
+        UUID id = setId(variant);
+        product.deactivate();
+        product.deactivateVariant(id);
+        assertEquals(CatalogDomainViolation.DUPLICATE_VARIANT_NAME,
+                assertThrows(CatalogDomainException.class,
+                        () -> product.addVariant("SECOND", " Black ", BigDecimal.TEN)).getViolation());
+        assertEquals(1, product.getVariants().size());
+    }
+
+    @Test
+    void renameCannotTakeAnotherVariantsNameButCanKeepItsOwn() {
+        Product product = product();
+        ProductVariant first = product.addVariant("FIRST", "Black", BigDecimal.ONE);
+        ProductVariant second = product.addVariant("SECOND", "White", BigDecimal.TEN);
+        UUID firstId = setId(first);
+        UUID secondId = setId(second);
+        assertDoesNotThrow(() -> product.updateVariant(firstId, " Black ", BigDecimal.TEN));
+        assertEquals(CatalogDomainViolation.DUPLICATE_VARIANT_NAME,
+                assertThrows(CatalogDomainException.class,
+                        () -> product.updateVariant(secondId, "Black", BigDecimal.ONE)).getViolation());
+        assertEquals("White", second.getName());
+        assertEquals(BigDecimal.TEN, second.getPrice());
+    }
+
+    @Test
+    void sameNameAcrossProductsIsAllowedAndCaseRemainsSignificant() {
+        Product product = product();
+        product.addVariant("FIRST", "Black", BigDecimal.ONE);
+        assertDoesNotThrow(() -> product().addVariant("SECOND", "Black", BigDecimal.ONE));
+        assertDoesNotThrow(() -> product.addVariant("THIRD", "black", BigDecimal.ONE));
+    }
+
     private Product product() {
         Category root = new Category("Electronics", null);
         return new Product(

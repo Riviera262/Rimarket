@@ -5,6 +5,7 @@ import RiMarket.com.example.demo.module.catalog.domain.exception.CatalogDomainVi
 import RiMarket.com.example.demo.module.catalog.domain.policy.VariantImagePolicy;
 import RiMarket.com.example.demo.module.catalog.domain.policy.VariantPolicy;
 import jakarta.persistence.*;
+import org.hibernate.annotations.UuidGenerator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,12 +17,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Entity
-@Table(name = "product_variants", schema = "catalog")
+@Table(name = "product_variants", schema = "catalog", uniqueConstraints =
+        @UniqueConstraint(name = "uq_product_variants_product_name", columnNames = {"product_id", "name"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProductVariant {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

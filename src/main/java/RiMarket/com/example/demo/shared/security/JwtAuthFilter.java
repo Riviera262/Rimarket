@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,12 +39,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         try {
-            // 3. Extract Username(Email) from the mathematical signature
-            String userEmail = jwtService.extractEmail(jwt);
-
-            // 4. If token is valid and context is empty, then authenticate them using the ONLY the token data!
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            // Authenticate only from verified token claims; preserve an existing authentication.
+            if (SecurityContextHolder.getContext().getAuthentication() == null){
                 if (jwtService.isTokenValid(jwt)){
+                    // Older tokens without userId cannot supply a trustworthy audit actor.
+                    AuthenticatedUser principal = new AuthenticatedUser(
+                            jwtService.extractUserId(jwt), jwtService.extractEmail(jwt));
                     //Extract roles from the Jwt Payload
                     List<String> roles = jwtService.extractRoles(jwt);
                     var authorities = roles.stream()
@@ -53,7 +52,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                             .toList();
                     //Create Spring Security without hitting the database
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userEmail,
+                            principal,
                             null,
                             authorities
                     );
@@ -65,7 +64,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
             // Token is invalid, expired, or tampered with. Do nothing, context stays empty.
-            // Spring Security will automatically return a 403 Forbidden.
+            // Protected routes return 401 through the configured AuthenticationEntryPoint.
         }
 
         filterChain.doFilter(request, response);

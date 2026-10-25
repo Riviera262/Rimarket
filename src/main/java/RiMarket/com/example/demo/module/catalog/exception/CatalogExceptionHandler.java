@@ -4,10 +4,15 @@ import RiMarket.com.example.demo.module.catalog.domain.exception.CatalogDomainEx
 import RiMarket.com.example.demo.module.catalog.domain.exception.CatalogDomainViolation;
 import RiMarket.com.example.demo.shared.exception.ErrorResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(basePackages = "RiMarket.com.example.demo.module.catalog")
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice(basePackages = {
+        "RiMarket.com.example.demo.module.catalog",
+        "RiMarket.com.example.demo.application.variant"})
 public class CatalogExceptionHandler {
 
     @ExceptionHandler(CatalogDomainException.class)
@@ -23,9 +28,7 @@ public class CatalogExceptionHandler {
                     error.getMessage()
         );
 
-        return ResponseEntity
-                .status(error.getStatus())
-                .body(response);
+        return ResponseEntity.status(error.getStatus()).body(response);
     }
 
     private CatalogErrorCode mapViolation(
@@ -76,6 +79,9 @@ public class CatalogExceptionHandler {
             // VARIANT
             case INVALID_VARIANT_NAME ->
                     CatalogErrorCode.INVALID_VARIANT_NAME;
+
+            case DUPLICATE_VARIANT_NAME ->
+                    CatalogErrorCode.DUPLICATE_VARIANT_NAME;
 
             case INVALID_VARIANT_PRICE ->
                     CatalogErrorCode.INVALID_VARIANT_PRICE;

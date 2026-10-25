@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 
 @ExtendWith(MockitoExtension.class)
 class ProductVariantServiceTest {
@@ -71,6 +72,12 @@ class ProductVariantServiceTest {
         when(productRepository.existsByVariantsSkuIgnoreCase("GAMING-LAPTOP-16GB-A1B2C3D4"))
                 .thenReturn(false);
 
+        UUID variantId = UUID.randomUUID();
+        doAnswer(invocation -> {
+            ReflectionTestUtils.setField(product.getVariants().getFirst(), "id", variantId);
+            return null;
+        }).when(productRepository).flush();
+
         ProductVariantResponse response = productVariantService.addVariant(
                 productId,
                 new CreateProductVariantRequest("16 GB", BigDecimal.valueOf(1_000))
@@ -84,6 +91,8 @@ class ProductVariantServiceTest {
         verify(productRepository).flush();
         verify(productRepository).findAggregateForChildCommandById(productId);
         verify(entityManager).lock(product, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
+
+        assertEquals(variantId, response.id());
     }
 
     @Test

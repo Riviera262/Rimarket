@@ -42,30 +42,16 @@ public class VariantImageManagementController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<VariantImageResponse> uploadImage(
-            @PathVariable UUID productId,
-            @PathVariable UUID variantId,
-            @RequestPart("file") MultipartFile file
-    ) {
-        VariantImageResponse response = variantImageService.uploadImage(productId, variantId, file);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @PostMapping(value = "/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<VariantImageResponse>> uploadImages(
             @PathVariable UUID productId,
             @PathVariable UUID variantId,
             @RequestPart("files") List<MultipartFile> files
     ) {
-        List<VariantImageResponse> response = variantImageService.uploadImages(
-                productId,
-                variantId,
-                files
-        );
+        List<VariantImageResponse> response = variantImageService.uploadImages(productId, variantId, files);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 
     @PutMapping(value = "/{imageId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<VariantImageResponse> replaceImage(

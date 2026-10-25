@@ -15,6 +15,7 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.transaction.support.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,7 +37,9 @@ class VariantImageTransactionBoundaryTest {
         ReflectionTestUtils.setField(variant, "id", variantId);
         when(repository.findAggregateById(productId)).thenReturn(Optional.of(product));
         when(repository.findAggregateForChildCommandById(productId)).thenReturn(Optional.of(product));
-        when(storage.upload(any(), anyString())).thenReturn(new StoredImage("new-asset", "https://cdn.test/new"));
+        when(storage.upload(any(), anyString())).thenReturn(
+                new StoredImage("new-asset", "https://cdn.test/new"),
+                new StoredImage("second-asset", "https://cdn.test/second"));
 
         var manager = new CommitFailureManager();
         var commandTarget = new VariantImageCommandService(repository, new VariantImageMapper());
@@ -46,11 +49,12 @@ class VariantImageTransactionBoundaryTest {
         var file = new MockMultipartFile("file", "a.jpg", "image/jpeg", new byte[]{1});
 
         assertThrows(OptimisticLockingFailureException.class,
-                () -> service.uploadImage(productId, variantId, file));
+                () -> service.uploadImages(productId, variantId, List.of(file, file)));
         assertEquals(1, manager.successfulReadCommits);
         assertEquals(1, manager.failedWriteCommits);
         verify(repository).flush();
         verify(storage).delete("new-asset");
+        verify(storage).delete("second-asset");
     }
 
     @Test
@@ -62,7 +66,7 @@ class VariantImageTransactionBoundaryTest {
         var tx = new TransactionTemplate(manager);
         var file = new MockMultipartFile("file", "a.jpg", "image/jpeg", new byte[]{1});
         assertThrows(IllegalTransactionStateException.class, () -> tx.executeWithoutResult(status ->
-                service.uploadImage(UUID.randomUUID(), UUID.randomUUID(), file)));
+                service.uploadImages(UUID.randomUUID(), UUID.randomUUID(), List.of(file))));
         verifyNoInteractions(storage, commands);
     }
 

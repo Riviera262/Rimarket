@@ -4,6 +4,7 @@ import RiMarket.com.example.demo.module.catalog.domain.exception.CatalogDomainEx
 import RiMarket.com.example.demo.module.catalog.domain.exception.CatalogDomainViolation;
 import RiMarket.com.example.demo.module.catalog.domain.policy.CategoryPolicy;
 import jakarta.persistence.*;
+import org.hibernate.annotations.UuidGenerator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.*;
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     private UUID id;
 
     @Version

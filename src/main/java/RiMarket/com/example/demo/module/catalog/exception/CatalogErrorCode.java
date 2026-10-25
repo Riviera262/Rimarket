@@ -168,6 +168,12 @@ public enum CatalogErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST
     ),
 
+    DUPLICATE_VARIANT_NAME(
+            "CATALOG_208",
+            "A variant with this name already exists in this product",
+            HttpStatus.CONFLICT
+    ),
+
 
     // =========================================================
     // VARIANT IMAGE

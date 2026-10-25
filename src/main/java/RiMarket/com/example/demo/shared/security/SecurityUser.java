@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 public class SecurityUser implements UserDetails {
@@ -34,6 +35,10 @@ public class SecurityUser implements UserDetails {
 
     public User getUser(){
         return this.user;
+    }
+
+    public UUID getUserId() {
+        return user.getId();
     }
 
     @Override

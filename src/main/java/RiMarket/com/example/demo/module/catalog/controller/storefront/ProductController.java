@@ -21,7 +21,7 @@ public class ProductController {
     // GET
     //=======================================================
 
-    //Get all products from a category OR get all products in DB
+    //Get all products from a category OR get all products in DB(Status: active)
     @GetMapping
     public ResponseEntity<Page<ProductSummaryResponse>> getProducts(@RequestParam(required = false) UUID categoryId, Pageable pageable){
         Page<ProductSummaryResponse> response;

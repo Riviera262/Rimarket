@@ -38,6 +38,18 @@ public enum CommonErrorCode implements ErrorCode {
             HttpStatus.BAD_GATEWAY
     ),
 
+    IDEMPOTENCY_CONFLICT(
+            "COMMON_008",
+            "This operationId was already used with a different creation request.",
+            HttpStatus.CONFLICT
+    ),
+
+    METHOD_NOT_ALLOWED(
+            "COMMON_007",
+            "This HTTP method is not supported for this endpoint.",
+            HttpStatus.METHOD_NOT_ALLOWED
+    ),
+
     CONCURRENT_MODIFICATION(
             "COMMON_006",
             "The resource was changed by another request. Please retry with fresh data.",

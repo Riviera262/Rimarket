@@ -34,20 +34,6 @@ public class VariantImageService {
         return variantImageCommandService.getImages(productId, variantId);
     }
 
-    public VariantImageResponse uploadImage(UUID productId, UUID variantId, MultipartFile file) {
-        validateFile(file);
-        variantImageCommandService.ensureCanAddImage(productId, variantId);
-
-        StoredImage storedImage = uploadToStorage(variantId, file);
-
-        try {
-            return variantImageCommandService.attachImage(productId, variantId, storedImage);
-        } catch (RuntimeException exception) {
-            compensateUpload(storedImage.publicId(), exception);
-            throw exception;
-        }
-    }
-
     public List<VariantImageResponse> uploadImages(
             UUID productId,
             UUID variantId,

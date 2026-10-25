@@ -10,10 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 @Service
@@ -34,6 +31,7 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
         claims.put("roles", roles);
+        claims.put("userId", user.getUserId().toString());
 
         return Jwts.builder()
                 .claims(claims)
@@ -47,6 +45,11 @@ public class JwtService {
     // Extract Username (Email) from the token
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
+    }
+
+    public UUID extractUserId(String token) {
+        String id = extractAllClaims(token).get("userId", String.class);
+        return id == null ? null : UUID.fromString(id);
     }
 
     @SuppressWarnings("unchecked")

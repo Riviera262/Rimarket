@@ -5,6 +5,7 @@ import RiMarket.com.example.demo.module.catalog.domain.exception.CatalogDomainVi
 import RiMarket.com.example.demo.module.catalog.domain.policy.ProductPolicy;
 import RiMarket.com.example.demo.module.catalog.domain.policy.VariantPolicy;
 import jakarta.persistence.*;
+import org.hibernate.annotations.UuidGenerator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,7 @@ public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     private UUID id;
 
     @Version
@@ -92,6 +94,7 @@ public class Product {
     // VARIANT
     //================================================================
     public ProductVariant addVariant(String sku, String variantName, BigDecimal price){
+        ensureUniqueVariantName(variantName, null);
         boolean firstVariant = variants.isEmpty();
 
         int sortOrder = variants.stream()
@@ -118,6 +121,7 @@ public class Product {
     public ProductVariant updateVariant(UUID variantId, String newName, BigDecimal newPrice){
         ProductVariant variant = findVariant(variantId);
 
+        ensureUniqueVariantName(newName, variant);
         variant.rename(newName);
         variant.changePrice(newPrice);
 
@@ -160,6 +164,15 @@ public class Product {
         variants.sort(Comparator.comparingInt(ProductVariant::getSortOrder));
     }
 
+    private void ensureUniqueVariantName(String name, ProductVariant excluded) {
+        String normalized = VariantPolicy.normalizeName(name);
+        boolean duplicate = variants.stream()
+                .anyMatch(variant -> variant != excluded && variant.getName().equals(normalized));
+        if (duplicate) {
+            throw new CatalogDomainException(CatalogDomainViolation.DUPLICATE_VARIANT_NAME);
+        }
+    }
+
     private ProductVariant findVariant(UUID variantId){
         return variants.stream()
                 .filter(v -> Objects.equals(v.getId(), variantId))
@@ -192,10 +205,6 @@ public class Product {
         ProductVariant variant = findVariant(variantId);
 
         return variant.replaceImage(imageId, publicId, url);
-    }
-
-    public void ensureCanAddVariantImage(UUID variantId){
-        ensureCanAddVariantImages(variantId, 1);
     }
 
     public void ensureCanAddVariantImages(UUID variantId, int additionalImageCount){

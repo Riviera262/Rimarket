@@ -53,8 +53,9 @@ class VariantImageCommandServiceTest {
             ReflectionTestUtils.setField(product.getVariantImages(variantId).getFirst(), "id", imageId);
             return null;
         }).when(repository).flush();
-        var response = service.attachImage(productId, variantId, new StoredImage("asset", "https://cdn.test/a"));
-        assertEquals(imageId, response.id());
+        var responses = service.attachImages(productId, variantId, List.of(new StoredImage("asset", "https://cdn.test/a")));
+        assertEquals(1, responses.size());
+        assertEquals(imageId, responses.getFirst().id());
         var order = inOrder(repository, entityManager);
         order.verify(repository).findAggregateForChildCommandById(productId);
         order.verify(entityManager).lock(product, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
@@ -112,11 +113,11 @@ class VariantImageCommandServiceTest {
     @Test
     void rechecksImageLimitAtAttachEvenAfterSuccessfulPrecheck() {
         when(repository.findAggregateById(productId)).thenReturn(Optional.of(product));
-        service.ensureCanAddImage(productId, variantId);
+        service.ensureCanAddImages(productId, variantId, 1);
         for (int i = 0; i < 8; i++) addImage("asset-" + i);
         commandLoad();
         var error = assertThrows(CatalogDomainException.class,
-                () -> service.attachImage(productId, variantId, new StoredImage("ninth", "https://cdn.test/9")));
+                () -> service.attachImages(productId, variantId, List.of(new StoredImage("ninth", "https://cdn.test/9"))));
         assertEquals(CatalogDomainViolation.VARIANT_IMAGE_LIMIT_EXCEEDED, error.getViolation());
         assertEquals(8, product.getVariantImages(variantId).size());
         verify(repository, never()).flush();

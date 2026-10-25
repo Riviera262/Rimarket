@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -77,6 +78,14 @@ public class GlobalExceptionHandler {
       return ResponseEntity
               .status(HttpStatus.BAD_REQUEST)
               .body(response);
+   }
+
+   @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+   public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+      CommonErrorCode error = CommonErrorCode.METHOD_NOT_ALLOWED;
+      ErrorResponse response = new ErrorResponse(
+              error.getStatus().value(), error.getCode(), error.getMessage());
+      return ResponseEntity.status(error.getStatus()).headers(ex.getHeaders()).body(response);
    }
 
    //Account not yet verified(403)

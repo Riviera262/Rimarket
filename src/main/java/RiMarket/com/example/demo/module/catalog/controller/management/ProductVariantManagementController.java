@@ -1,13 +1,11 @@
 package RiMarket.com.example.demo.module.catalog.controller.management;
 
-import RiMarket.com.example.demo.module.catalog.dto.productVariant.CreateProductVariantRequest;
 import RiMarket.com.example.demo.module.catalog.dto.productVariant.ProductVariantResponse;
 import RiMarket.com.example.demo.module.catalog.dto.productVariant.ReorderProductVariantsRequest;
 import RiMarket.com.example.demo.module.catalog.dto.productVariant.UpdateProductVariantRequest;
 import RiMarket.com.example.demo.module.catalog.service.ProductVariantService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -22,18 +20,7 @@ public class ProductVariantManagementController {
 
     private final ProductVariantService productVariantService;
 
-    //Add 1 variant to a product
-    @PostMapping
-    public ResponseEntity<ProductVariantResponse> addVariant(
-            @PathVariable UUID productId,
-            @Valid @RequestBody CreateProductVariantRequest request) {
-
-         ProductVariantResponse response = productVariantService.addVariant(productId, request);
-
-         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-
+    // Creation is exposed only by application.variant.VariantStockManagementController.
     //Update 1 variant in a product
     @PutMapping("/{variantId}")
     public ResponseEntity<ProductVariantResponse> updateVariant(

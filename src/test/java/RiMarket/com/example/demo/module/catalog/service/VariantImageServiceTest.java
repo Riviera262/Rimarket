@@ -53,17 +53,17 @@ class VariantImageServiceTest {
         UUID variantId = UUID.randomUUID();
         MockMultipartFile file = imageFile();
         StoredImage stored = storedImage("catalog/new", "https://cdn.test/new.jpg");
-        VariantImageResponse expected = response(UUID.randomUUID(), stored.url());
+        List<VariantImageResponse> expected = List.of(response(UUID.randomUUID(), stored.url()));
         when(imageStorage.upload(any(byte[].class), eq(folder(variantId)))).thenReturn(stored);
-        when(commandService.attachImage(productId, variantId, stored)).thenReturn(expected);
+        when(commandService.attachImages(productId, variantId, List.of(stored))).thenReturn(expected);
 
-        VariantImageResponse actual = imageService.uploadImage(productId, variantId, file);
+        List<VariantImageResponse> actual = imageService.uploadImages(productId, variantId, List.of(file));
 
         assertSame(expected, actual);
         InOrder order = inOrder(commandService, imageStorage);
-        order.verify(commandService).ensureCanAddImage(productId, variantId);
+        order.verify(commandService).ensureCanAddImages(productId, variantId, 1);
         order.verify(imageStorage).upload(any(byte[].class), eq(folder(variantId)));
-        order.verify(commandService).attachImage(productId, variantId, stored);
+        order.verify(commandService).attachImages(productId, variantId, List.of(stored));
     }
 
     @Test
@@ -74,11 +74,11 @@ class VariantImageServiceTest {
         StoredImage stored = storedImage("catalog/new", "https://cdn.test/new.jpg");
         RuntimeException failure = new RuntimeException("database failed");
         when(imageStorage.upload(any(byte[].class), eq(folder(variantId)))).thenReturn(stored);
-        when(commandService.attachImage(productId, variantId, stored)).thenThrow(failure);
+        when(commandService.attachImages(productId, variantId, List.of(stored))).thenThrow(failure);
 
         RuntimeException thrown = assertThrows(
                 RuntimeException.class,
-                () -> imageService.uploadImage(productId, variantId, file)
+                () -> imageService.uploadImages(productId, variantId, List.of(file))
         );
 
         assertSame(failure, thrown);
@@ -279,7 +279,7 @@ class VariantImageServiceTest {
 
         AppException exception = assertThrows(
                 AppException.class,
-                () -> imageService.uploadImage(UUID.randomUUID(), UUID.randomUUID(), file)
+                () -> imageService.uploadImages(UUID.randomUUID(), UUID.randomUUID(), List.of(file))
         );
 
         assertEquals(CommonErrorCode.UNSUPPORTED_FILE_TYPE, exception.getErrorCode());
@@ -295,16 +295,27 @@ class VariantImageServiceTest {
     }
 
     @Test
+    void missingOrEmptyListNeverReachesDatabaseOrStorage() {
+        var nullError = assertThrows(AppException.class,
+                () -> imageService.uploadImages(UUID.randomUUID(), UUID.randomUUID(), null));
+        var emptyError = assertThrows(AppException.class,
+                () -> imageService.uploadImages(UUID.randomUUID(), UUID.randomUUID(), List.of()));
+        assertEquals(CommonErrorCode.FILE_REQUIRED, nullError.getErrorCode());
+        assertEquals(CommonErrorCode.FILE_REQUIRED, emptyError.getErrorCode());
+        verifyNoInteractions(commandService, imageStorage);
+    }
+
+    @Test
     void missingOrOversizedFilesNeverReachDatabaseOrStorage() {
         var empty = new MockMultipartFile("file", new byte[0]);
         for (var file : java.util.Arrays.asList(null, empty)) {
             var error = assertThrows(AppException.class,
-                    () -> imageService.uploadImage(UUID.randomUUID(), UUID.randomUUID(), file));
+                    () -> imageService.uploadImages(UUID.randomUUID(), UUID.randomUUID(), java.util.Collections.singletonList(file)));
             assertEquals(CommonErrorCode.FILE_REQUIRED, error.getErrorCode());
         }
         var large = new MockMultipartFile("file", "a.jpg", "image/jpeg", new byte[5 * 1024 * 1024 + 1]);
         var error = assertThrows(AppException.class,
-                () -> imageService.uploadImage(UUID.randomUUID(), UUID.randomUUID(), large));
+                () -> imageService.uploadImages(UUID.randomUUID(), UUID.randomUUID(), List.of(large)));
         assertEquals(CommonErrorCode.FILE_TOO_LARGE, error.getErrorCode());
         verifyNoInteractions(commandService, imageStorage);
     }
@@ -313,9 +324,9 @@ class VariantImageServiceTest {
     void uploadFailureDoesNotAttachMetadata() {
         when(imageStorage.upload(any(), anyString())).thenThrow(new RuntimeException("storage unavailable"));
         var error = assertThrows(AppException.class,
-                () -> imageService.uploadImage(UUID.randomUUID(), UUID.randomUUID(), imageFile()));
+                () -> imageService.uploadImages(UUID.randomUUID(), UUID.randomUUID(), List.of(imageFile())));
         assertEquals(CommonErrorCode.FILE_UPLOAD_FAILED, error.getErrorCode());
-        verify(commandService, never()).attachImage(any(), any(), any());
+        verify(commandService, never()).attachImages(any(), any(), any());
         verify(imageStorage, never()).delete(any());
     }
 
@@ -333,10 +344,10 @@ class VariantImageServiceTest {
         var original = new RuntimeException("database conflict");
         var cleanup = new RuntimeException("cleanup unavailable");
         when(imageStorage.upload(any(), anyString())).thenReturn(new StoredImage("new", "https://cdn.test/new"));
-        when(commandService.attachImage(any(), any(), any())).thenThrow(original);
+        when(commandService.attachImages(any(), any(), any())).thenThrow(original);
         doThrow(cleanup).when(imageStorage).delete("new");
         var error = assertThrows(RuntimeException.class,
-                () -> imageService.uploadImage(UUID.randomUUID(), UUID.randomUUID(), imageFile()));
+                () -> imageService.uploadImages(UUID.randomUUID(), UUID.randomUUID(), List.of(imageFile())));
         assertSame(original, error);
         assertSame(cleanup, error.getSuppressed()[0]);
     }

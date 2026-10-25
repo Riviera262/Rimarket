@@ -58,6 +58,8 @@
 - [x] management controller
 - [x] replace image while preserving image ID/order
 - [x] batch upload with all-or-nothing DB attachment and best-effort storage compensation
+- [x] one list-based upload endpoint for both one and multiple files
+- [x] Hibernate UUIDv7 generation for new Catalog entity IDs, preserving legacy IDs
 - [ ] upload test through real Variant
 - [x] delete unit test
 - [x] cover selection through reorder unit test
@@ -66,13 +68,30 @@
 - [x] Product detail mapping
 - [ ] apply manual migrations and run PostgreSQL concurrency/Cloudinary HTTP checks
 - [x] prepare Catalog-owned outbox table migration
-- [ ] define and emit Catalog integration events after Inventory's consumer contract exists
+- [x] retire VariantCreated writer example in favor of one synchronous create workflow
+- [ ] implement Catalog event integration only when a concrete consumer needs it
+- [ ] define remaining Catalog integration events when their consumers need them
 
 ---
 
 ## Next
 
 ### Inventory
+
+Implemented: item/movement/outbox entity mappings, Catalog public lookup, management
+create/read/receive/adjust/history APIs, operation deduplication, optimistic locking,
+and transactional outgoing stock-change event writes. Manual table-creation SQL is
+prepared; existing stock backfill, reservations, Catalog consumers and publisher remain pending.
+See [Inventory schema](INVENTORY_SCHEMA.md) for quantity semantics and constraints.
+
+The admin form uses the single POST /products/{productId}/variants for synchronous,
+transactional variant creation plus initial stock; no alternate Catalog-only create route.
+See [workflow](VARIANT_STOCK_WORKFLOW.md).
+Request-wide creation idempotency now uses (actor_id, operationId), with a saved response
+and atomic claim in the workflow transaction. Keys expire after 24 hours; an hourly
+bounded cleanup removes expired rows. Receipt operationId still deduplicates within a
+variant. Apply the manual migration and verify the full workflow on a disposable
+application DB before rollout; see the workflow document for test scope.
 
 Goals:
 

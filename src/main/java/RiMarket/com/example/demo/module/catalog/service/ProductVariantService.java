@@ -1,5 +1,6 @@
 package RiMarket.com.example.demo.module.catalog.service;
 
+import RiMarket.com.example.demo.module.catalog.api.CatalogVariantCommands;
 import RiMarket.com.example.demo.module.catalog.domain.identifier.SkuGenerator;
 import RiMarket.com.example.demo.module.catalog.dto.productVariant.CreateProductVariantRequest;
 import RiMarket.com.example.demo.module.catalog.dto.productVariant.ProductVariantResponse;
@@ -22,7 +23,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class ProductVariantService {
+public class ProductVariantService implements CatalogVariantCommands {
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -31,6 +32,7 @@ public class ProductVariantService {
     private final ProductRepository productRepository;
     private final SkuGenerator skuGenerator;
 
+    @Override
     @Transactional
     public ProductVariantResponse addVariant(UUID productId, CreateProductVariantRequest request){
         Product product = loadProductAggregate(productId);
@@ -42,6 +44,7 @@ public class ProductVariantService {
         }
 
         ProductVariant variant = product.addVariant(sku, request.name(), request.price());
+        // Cascade persists the child and assigns its UUID. Flush is not a commit.
         productRepository.flush();
 
         return productVariantMapper.toResponse(variant);

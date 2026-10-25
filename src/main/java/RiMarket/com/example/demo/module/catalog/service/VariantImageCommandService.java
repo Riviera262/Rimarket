@@ -33,12 +33,6 @@ public class VariantImageCommandService {
     private final ProductRepository productRepository;
     private final VariantImageMapper variantImageMapper;
 
-    //Check image size
-    @Transactional(readOnly = true)
-    public void ensureCanAddImage(UUID productId, UUID variantId) {
-        ensureCanAddImages(productId, variantId, 1);
-    }
-
     @Transactional(readOnly = true)
     public void ensureCanAddImages(UUID productId, UUID variantId, int imageCount) {
         Product product = loadAggregateWithImages(productId);
@@ -58,24 +52,6 @@ public class VariantImageCommandService {
         Product product = loadAggregateWithImages(productId);
 
         return variantImageMapper.toResponseList(product.getVariantImages(variantId));
-    }
-
-    @Transactional
-    public VariantImageResponse attachImage(
-            UUID productId,
-            UUID variantId,
-            StoredImage storedImage
-    ) {
-        Product product = loadAggregateWithImagesForCommand(productId);
-        VariantImage image = product.addVariantImage(
-                variantId,
-                storedImage.publicId(),
-                storedImage.url()
-        );
-
-        productRepository.flush();
-
-        return variantImageMapper.toResponse(image);
     }
 
     @Transactional

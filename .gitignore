@@ -3,7 +3,8 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-docs/database/
+docs/database/*
+!docs/database/2026-10-19-variant-creation-idempotency.sql
 ### STS ###
 .apt_generated
 .classpath

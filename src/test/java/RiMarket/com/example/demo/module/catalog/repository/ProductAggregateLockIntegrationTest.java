@@ -49,4 +49,29 @@ class ProductAggregateLockIntegrationTest {
 
         assertEquals(2, aggregate.getVariants().size());
     }
+
+    @Test
+    void catalogGeneratesVersionSevenIdsAndPreservesThemAfterReload() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        Category root = categoryRepository.save(new Category("UUID root " + suffix, null));
+        Category category = categoryRepository.save(new Category("UUID child " + suffix, root));
+        Product product = new Product("UUID test product", "uuid-test-" + suffix, null, category);
+        var variant = product.addVariant("UUID-" + suffix.toUpperCase(), "First", BigDecimal.TEN);
+        productRepository.saveAndFlush(product);
+        var image = product.addVariantImage(variant.getId(), "uuid-test/" + suffix, "https://cdn.test/image.jpg");
+        productRepository.flush();
+
+        for (UUID id : java.util.List.of(root.getId(), category.getId(), product.getId(), variant.getId(), image.getId())) {
+            assertEquals(7, id.version());
+            assertEquals(2, id.variant());
+        }
+        UUID imageId = image.getId();
+        UUID variantId = variant.getId();
+        UUID productId = product.getId();
+        entityManager.clear();
+
+        Product reloaded = productRepository.findAggregateById(productId).orElseThrow();
+        productRepository.findAllWithImagesByProductId(productId);
+        assertEquals(imageId, reloaded.getVariantImages(variantId).getFirst().getId());
+    }
 }
